@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
@@ -6,11 +7,10 @@ from dotenv import load_dotenv
 import os
 import requests
 
+from database import create_db_and_tables
+
 load_dotenv()
 GEOAPIFY_API_KEY = os.getenv("GEOAPIFY_API_KEY")
-
-
-app = FastAPI()
 
 
 class DeviceSignal(BaseModel):
@@ -30,6 +30,15 @@ class TargetLocation(BaseModel):
 class TargetResponse(BaseModel):
     status: str
     response: list[TargetLocation]
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await create_db_and_tables()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/")
