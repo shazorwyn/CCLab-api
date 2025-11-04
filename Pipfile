@@ -6,6 +6,11 @@ name = "pypi"
 [packages]
 fastapi = "*"
 uvicorn = {extras = ["standard"], version = "*"}
+python-dotenv = "*"
+requests = "*"
+sqlalchemy = "*"
+aiosqlite = "*"
+passlib = {extras = ["bcrypt"], version = "*"}
 
 [dev-packages]
 
