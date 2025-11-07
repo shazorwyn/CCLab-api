@@ -12,3 +12,19 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class DeviceResponse(BaseModel):
+    device_id: str
+    api_key: str
+
+    class Config:
+        from_attributes = True
+
+
+class RegisterResponse(BaseModel):
+    user: UserResponse
+    device: DeviceResponse
+
+    class Config:
+        from_attributes = True
