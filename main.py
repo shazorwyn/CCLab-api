@@ -50,7 +50,7 @@ class TargetResponse(BaseModel):
     response: list[TargetLocation]
 
 
-# 🧹 Cleanup old signal logs (older than 24 hours)
+# Cleanup old signal logs (older than 24 hours)
 
 
 async def cleanup_old_signals_loop():
@@ -64,7 +64,7 @@ async def cleanup_old_signals_loop():
             print("[CLEANUP] Removed old signal logs (older than 24h)")
         await asyncio.sleep(6 * 60 * 60)  # run every 6 hours
 
-# 🧹 Cleanup old fuel station cache (older than 24 hours)
+# Cleanup old fuel station cache (older than 24 hours)
 
 
 async def cleanup_old_cache_loop():
@@ -90,8 +90,12 @@ async def lifespan(app: FastAPI):
     yield
     print("[SYSTEM] Backend shutting down gracefully 💤")
 
-
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(
+    lifespan=lifespan,
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -126,25 +130,35 @@ async def root():
 
 
 @auth_router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
-async def register_user(user_in: UserCreate, db: AsyncSession = AsyncSessionDependency):
+async def register_user(
+    user_in: UserCreate,
+    operator_key: str = Header(None),
+    db: AsyncSession = AsyncSessionDependency
+):
+    #Require operator key for authorization
+    expected_key = os.getenv("OPERATOR_KEY")
+    if not operator_key or operator_key != expected_key:
+        raise HTTPException(status_code=403, detail="Forbidden: Invalid operator key")
 
+    # Check if email exists
     result = await db.execute(select(User).where(User.email == user_in.email))
     existing_user = result.scalar_one_or_none()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
 
+    # Create user
     hashed_password = Hasher.get_password_hash(user_in.password)
     new_user = User(email=user_in.email, hashed_password=hashed_password)
     db.add(new_user)
-    await db.flush()  # ensure new_user.id is available before commit
+    await db.flush()
 
+    # Create linked device
     device = Device(
         device_id=f"DEV_{new_user.id:04d}",
         api_key=secrets.token_hex(16),
         user_id=new_user.id,
     )
     db.add(device)
-
     await db.commit()
     await db.refresh(new_user)
     await db.refresh(device)
@@ -156,6 +170,7 @@ async def register_user(user_in: UserCreate, db: AsyncSession = AsyncSessionDepe
             "api_key": device.api_key
         }
     }
+
 
 
 @auth_router.post("/login")
@@ -327,3 +342,4 @@ async def get_latest_signal(
         "soc": latest_log.soc,
         "time": latest_log.time
     }
+
