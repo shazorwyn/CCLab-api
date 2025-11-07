@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 from database import Base
 
 
@@ -39,7 +39,7 @@ class SignalLog(Base):
     lon = Column(Float)
     soc = Column(Float)
     time = Column(DateTime)
-    received_at = Column(DateTime, default=datetime.now)
+    received_at = Column(DateTime, default=datetime.now(timezone.utc))
 
 
 class FuelStationCache(Base):
@@ -54,7 +54,8 @@ class FuelStationCache(Base):
 
     # Relationship (optional)
     device = relationship("Device", backref="cached_stations")
-    cached_at = Column(DateTime, default=datetime.now, nullable=False)
+    cached_at = Column(DateTime, default=datetime.now(
+        timezone.utc), nullable=False)
 
     def __repr__(self):
         return f"<FuelStationCache(device={self.device_id}, name={self.name})>"

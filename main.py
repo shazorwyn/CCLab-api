@@ -28,6 +28,7 @@ from auth import create_access_token, get_current_user
 
 load_dotenv()
 GEOAPIFY_API_KEY = os.getenv("GEOAPIFY_API_KEY")
+origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
 
 
 class DeviceSignal(BaseModel):
@@ -93,11 +94,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://172.20.114.82:8000"
-    ],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
